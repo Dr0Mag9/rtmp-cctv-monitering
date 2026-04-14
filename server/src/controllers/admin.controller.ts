@@ -32,13 +32,17 @@ export async function listAgents(_req: Request, res: Response) {
 export async function createAgent(req: Request, res: Response) {
   const parsed = createAgentSchema.safeParse(req.body);
   if (!parsed.success) {
-    return sendError(res, 400, 'Invalid agent data');
+    return sendError(res, 400, 'Invalid agent data: ' + parsed.error.issues.map(i => i.message).join(', '));
   }
   try {
     const user = await adminService.createAgent(parsed.data);
-    return res.json(user);
-  } catch (e) {
+    return res.status(201).json(user);
+  } catch (e: any) {
     logger.error('createAgent', { message: e instanceof Error ? e.message : String(e) });
+    // Prisma unique constraint violation (duplicate email)
+    if (e?.code === 'P2002') {
+      return sendError(res, 409, 'An agent with this email already exists.');
+    }
     return sendError(res, 400, 'Failed to create agent');
   }
 }

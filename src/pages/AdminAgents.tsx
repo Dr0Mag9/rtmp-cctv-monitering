@@ -19,6 +19,7 @@ export default function AdminAgents() {
   // Forms
   const [formData, setFormData] = useState({ name: '', email: '', password: '', extension: '', assignedNumber: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addError, setAddError] = useState('');
 
   const fetchAgents = () => {
     fetch('/api/admin/agents', {
@@ -38,6 +39,14 @@ export default function AdminAgents() {
 
   const handleAddAgent = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAddError('');
+
+    // Client-side validation
+    if (formData.password.length < 8) {
+      setAddError('Password must be at least 8 characters.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/admin/agents', {
@@ -48,13 +57,19 @@ export default function AdminAgents() {
         },
         body: JSON.stringify(formData)
       });
+      const data = await res.json();
       if (res.ok) {
         setIsAddModalOpen(false);
+        setAddError('');
         setFormData({ name: '', email: '', password: '', extension: '', assignedNumber: '' });
         fetchAgents();
+      } else {
+        // Show the error returned by the API (e.g. duplicate email)
+        setAddError(data?.error || 'Failed to create agent. Please try again.');
       }
     } catch (err) {
       console.error(err);
+      setAddError('Network error. Please check your connection.');
     } finally {
       setIsSubmitting(false);
     }
@@ -138,6 +153,7 @@ export default function AdminAgents() {
         <button 
           onClick={() => {
             setFormData({ name: '', email: '', password: '', extension: '', assignedNumber: '' });
+            setAddError('');
             setIsAddModalOpen(true);
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-medium"
@@ -211,11 +227,16 @@ export default function AdminAgents() {
           <div className="bg-white rounded-xl shadow-xl w-[500px] overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-900">Add New Agent</h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setIsAddModalOpen(false); setAddError(''); }} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleAddAgent} className="p-6 space-y-4">
+              {addError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {addError}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
                 <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
@@ -225,8 +246,8 @@ export default function AdminAgents() {
                 <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                <input required type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password * <span className="text-gray-400 font-normal">(min 8 characters)</span></label>
+                <input required type="password" minLength={8} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Min. 8 characters" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

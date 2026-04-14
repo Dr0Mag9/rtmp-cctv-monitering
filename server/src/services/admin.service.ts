@@ -48,16 +48,21 @@ export async function createAgent(data: {
   assignedNumber?: string;
 }) {
   const passwordHash = await hashPassword(data.password);
+  // Normalize optional fields: empty strings → undefined (stored as NULL)
+  const extension = data.extension?.trim() || undefined;
+  const assignedNumber = data.assignedNumber?.trim() || undefined;
   return prisma.user.create({
     data: {
       name: data.name.trim(),
       email: data.email.trim().toLowerCase(),
       passwordHash,
       role: 'AGENT',
+      isActive: true,       // Explicit — never rely on DB default
+      status: 'OFFLINE',    // Explicit — never rely on DB default
       agent: {
         create: {
-          extension: data.extension?.trim(),
-          assignedNumber: data.assignedNumber?.trim(),
+          extension,
+          assignedNumber,
         },
       },
     },
